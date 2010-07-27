@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <tchar.h>
+#ifdef __MINGW32__
+#include <seh.h>
+#endif
 
 #define WIN32_SERVICE_VERSION "0.7.1"
 
@@ -172,6 +175,7 @@ VALUE Ruby_Service_Ctrl(VALUE self)
 
       // This is an ugly polling loop, be as polite as possible
       rb_thread_polling();
+      __end_finally
    }
 
    // force service_stop call
@@ -196,12 +200,12 @@ void WINAPI Service_Ctrl(DWORD dwCtrlCode)
 
    // hard to image this code ever failing, so we probably
    // don't need the __try/__finally wrapper
-   __try
+   // __try
    {
       EnterCriticalSection(&csControlCode);
       waiting_control_code = dwCtrlCode;
    }
-   __finally
+   // __finally
    {
       LeaveCriticalSection(&csControlCode);
    }
@@ -241,6 +245,7 @@ void WINAPI Service_Ctrl(DWORD dwCtrlCode)
       if(!SetEvent(hStopEvent))
          SetTheServiceStatus(SERVICE_STOPPED, GetLastError(), 0, 0);
    }
+   // __end_finally
 }
 
 //  Wraps SetServiceStatus.
